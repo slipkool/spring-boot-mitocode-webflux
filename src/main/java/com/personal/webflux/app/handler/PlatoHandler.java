@@ -1,5 +1,9 @@
 package com.personal.webflux.app.handler;
 
+import static org.springframework.web.reactive.function.BodyInserters.fromValue;
+
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -8,18 +12,18 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.personal.webflux.app.model.Plato;
 import com.personal.webflux.app.service.IPlatoService;
+import com.personal.webflux.app.validator.RequestValidator;
 
 import reactor.core.publisher.Mono;
-
-import static org.springframework.web.reactive.function.BodyInserters.fromValue;
-
-import java.net.URI;
 
 @Component
 public class PlatoHandler {
 
     @Autowired
     private IPlatoService service;
+
+    @Autowired
+    private RequestValidator validadorGeneral;
 
     public Mono<ServerResponse> listar(ServerRequest req) {
         return ServerResponse
@@ -42,12 +46,47 @@ public class PlatoHandler {
 
     public Mono<ServerResponse> registrar(ServerRequest req) {
         Mono<Plato> monoPlato = req.bodyToMono(Plato.class);
-        return monoPlato.flatMap(service::registrar)
-                .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .body(fromValue(p)));
-    }
 
+        /*return monoPlato.flatMap(p -> {
+            Errors errores = new BeanPropertyBindingResult(p, Plato.class.getName());
+            validador.validate(p, errores);
+
+            if(errores.hasErrors()) {
+                return Flux.fromIterable(errores.getFieldErrors())
+                        .map(error -> new ValidacionDTO(error.getField(), error.getDefaultMessage()))
+                        .collectList()
+                        .flatMap(listaErrores -> {
+                            return ServerResponse.badRequest()
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .body(fromValue(listaErrores));
+                                    }
+                                );
+            }else {
+                return service.registrar(p)
+                        .flatMap(pdb -> ServerResponse
+                        .created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(fromValue(pdb))
+                        );
+            }
+
+        });*/
+
+        /*return monoPlato
+                .flatMap(service::registrar)
+                .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(fromValue(p))
+                );*/
+
+        return monoPlato
+                .flatMap(validadorGeneral::validate)
+                .flatMap(service::registrar)
+                .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(fromValue(p))
+                );
+    }
     public Mono<ServerResponse> modificar(ServerRequest req) {
         Mono<Plato> monoPlato = req.bodyToMono(Plato.class);
         Mono<Plato> monoBD = service.listarPorId(req.pathVariable("id"));
@@ -57,6 +96,7 @@ public class PlatoHandler {
                     bd.setNombre(p.getNombre());
                     return bd;
                 })
+                .flatMap(validadorGeneral::validate)
                 .flatMap(service::modificar)
                 .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
                                 .contentType(MediaType.APPLICATION_JSON)

@@ -8,6 +8,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.personal.webflux.app.model.Factura;
 import com.personal.webflux.app.service.IFacturaService;
+import com.personal.webflux.app.validator.RequestValidator;
 
 import reactor.core.publisher.Mono;
 
@@ -20,6 +21,9 @@ public class FacturaHandler {
 
     @Autowired
     private IFacturaService service;
+
+    @Autowired
+    private RequestValidator validadorGeneral;
 
     public Mono<ServerResponse> listar(ServerRequest req) {
         return ServerResponse
@@ -42,7 +46,9 @@ public class FacturaHandler {
 
     public Mono<ServerResponse> registrar(ServerRequest req) {
         Mono<Factura> monoFactura = req.bodyToMono(Factura.class);
-        return monoFactura.flatMap(service::registrar)
+        return monoFactura
+                .flatMap(validadorGeneral::validate)
+                .flatMap(service::registrar)
                 .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .body(fromValue(p)));
@@ -60,6 +66,7 @@ public class FacturaHandler {
                     bd.setObservacion(f.getObservacion());
                     return bd;
                 })
+                .flatMap(validadorGeneral::validate)
                 .flatMap(service::modificar)
                 .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
                                 .contentType(MediaType.APPLICATION_JSON)

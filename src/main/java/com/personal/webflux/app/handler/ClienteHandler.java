@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.personal.webflux.app.model.Cliente;
 import com.personal.webflux.app.service.IClienteService;
+import com.personal.webflux.app.validator.RequestValidator;
 
 import reactor.core.publisher.Mono;
 
@@ -20,6 +21,9 @@ public class ClienteHandler {
 
     @Autowired
     private IClienteService service;
+
+    @Autowired
+    private RequestValidator validadorGeneral;
 
     public Mono<ServerResponse> listar(ServerRequest req) {
         return ServerResponse
@@ -42,7 +46,9 @@ public class ClienteHandler {
 
     public Mono<ServerResponse> registrar(ServerRequest req) {
         Mono<Cliente> monoCliente = req.bodyToMono(Cliente.class);
-        return monoCliente.flatMap(service::registrar)
+        return monoCliente
+                .flatMap(validadorGeneral::validate)
+                .flatMap(service::registrar)
                 .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .body(fromValue(p)));
@@ -59,6 +65,7 @@ public class ClienteHandler {
                     bd.setFechaNac(c.getFechaNac());
                     return bd;
                 })
+                .flatMap(validadorGeneral::validate)
                 .flatMap(service::modificar)
                 .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
                                 .contentType(MediaType.APPLICATION_JSON)
