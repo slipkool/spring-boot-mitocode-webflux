@@ -6,8 +6,11 @@ import static reactor.function.TupleUtils.function;
 
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Files;
+import java.util.Map;
 import java.util.UUID;
 
+import org.cloudinary.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.EntityModel;
@@ -28,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.personal.webflux.app.model.Cliente;
 import com.personal.webflux.app.service.IClienteService;
 
@@ -121,14 +126,45 @@ public class ClientesController {
                 .zipWith(clienteService.listarPorId(id), (links, p) -> EntityModel.of(p, links));
     }
 
+    /*
+     * subir imagen al servidor local
+     */
+//    @PostMapping("subir/{id}")
+//    public Mono<ResponseEntity<Cliente>> subir(@PathVariable String id, @RequestPart FilePart file) {
+//        return clienteService.listarPorId(id)
+//                .flatMap(c -> {
+//                    c.setUrlFoto(UUID.randomUUID() + "-" + file.filename());
+//                    return file.transferTo(new File(RUTA_SUBIDA + c.getUrlFoto())).then(clienteService.registrar(c));
+//                })
+//                .map(c -> ResponseEntity.ok(c))
+//                .defaultIfEmpty(ResponseEntity.notFound().build());
+//    }
+    /*
+     * subir a imagen a un servidor externo Cloudinary
+     */
     @PostMapping("subir/{id}")
     public Mono<ResponseEntity<Cliente>> subir(@PathVariable String id, @RequestPart FilePart file) {
+        Cloudinary cloudinary = new Cloudinary(ObjectUtils.asMap("cloud_name", "TU_CLOUD_NAME"
+                                                                , "api_key", "TU_API_KEY"
+                                                                , "api_secret", "TU_API_SECRET"));
+
         return clienteService.listarPorId(id)
-                .flatMap(c -> {
-                    c.setUrlFoto(UUID.randomUUID() + "-" + file.filename());
-                    return file.transferTo(new File(RUTA_SUBIDA + c.getUrlFoto())).then(clienteService.registrar(c));
+                .map(c -> {
+                    try {
+                        File f = Files.createTempFile("temp", file.filename()).toFile();
+                        file.transferTo(f);
+                        Map response = cloudinary.uploader().upload(f, ObjectUtils.asMap("resource_type", "auto"));
+
+                        JSONObject json = new JSONObject(response);
+                        String url  = json.getString("url");
+
+                        c.setUrlFoto(url);
+                        clienteService.modificar(c).then(Mono.just(ResponseEntity.ok().body(c)));
+                    }catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    return ResponseEntity.ok().body(c);
                 })
-                .map(c -> ResponseEntity.ok(c))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
