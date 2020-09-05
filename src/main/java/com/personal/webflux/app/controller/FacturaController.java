@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/facturas")
-public class FacturasController {
+public class FacturaController {
 
     @Autowired
     private IFacturaService Facturaservice;
@@ -85,8 +85,8 @@ public class FacturasController {
 
     @GetMapping("/hateoas/{id}")
     public Mono<EntityModel<Factura>> listarHateoasPorId(@PathVariable("id") String id) {
-        Mono<Link> link1 = linkTo(methodOn(FacturasController.class).listarPorId(id)).withSelfRel().toMono();
-        Mono<Link> link2 = linkTo(methodOn(FacturasController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link1 = linkTo(methodOn(FacturaController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link2 = linkTo(methodOn(FacturaController.class).listarPorId(id)).withSelfRel().toMono();
 
         //PRACTIVA NO RECOMENDADA
 //        return Facturaservice.listarPorId(id)

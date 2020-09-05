@@ -27,19 +27,26 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.personal.webflux.app.dto.PlatoClienteDTO;
+import com.personal.webflux.app.model.Cliente;
 import com.personal.webflux.app.model.Plato;
 import com.personal.webflux.app.pagination.PageSupport;
+import com.personal.webflux.app.service.IClienteService;
 import com.personal.webflux.app.service.IPlatoService;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @RestController
 @RequestMapping("/platos")
-public class PlatosController {
+public class PlatoController {
 
     @Autowired
     private IPlatoService platoService;
+
+    @Autowired
+    private IClienteService clienteService;
 
     @GetMapping
     public Mono<ResponseEntity<Flux<Plato>>> listar() {
@@ -98,8 +105,8 @@ public class PlatosController {
 
     @GetMapping("/hateoas/{id}")
     public Mono<EntityModel<Plato>> listarHateoasPorId(@PathVariable("id") String id) {
-        Mono<Link> link1 = linkTo(methodOn(PlatosController.class).listarPorId(id)).withSelfRel().toMono();
-        Mono<Link> link2 = linkTo(methodOn(PlatosController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link1 = linkTo(methodOn(PlatoController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link2 = linkTo(methodOn(PlatoController.class).listarPorId(id)).withSelfRel().toMono();
 
         //PRACTIVA NO RECOMENDADA
 //        return platoService.listarPorId(id)
@@ -152,5 +159,21 @@ public class PlatosController {
                             .retrieve() //recuperar
                             .bodyToFlux(Plato.class);
         return fx;
+    }
+
+    /*
+     * Consumo de multiples servicios
+     */
+    @GetMapping("/client2")
+    public Mono<ResponseEntity<PlatoClienteDTO>> listarClient2(){
+        Mono<Plato> plato = platoService.listarPorId("").subscribeOn(Schedulers.single()).defaultIfEmpty(new Plato());
+        Mono<Cliente> cliente = clienteService.listarPorId("").subscribeOn(Schedulers.single()).defaultIfEmpty(new Cliente());
+
+        return Mono.zip(cliente, plato, PlatoClienteDTO::new)
+                .map(p -> ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(p)
+                )
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 }

@@ -41,7 +41,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/clientes")
-public class ClientesController {
+public class ClienteController {
 
     @Autowired
     private IClienteService clienteService;
@@ -98,8 +98,8 @@ public class ClientesController {
 
     @GetMapping("/hateoas/{id}")
     public Mono<EntityModel<Cliente>> listarHateoasPorId(@PathVariable("id") String id) {
-        Mono<Link> link1 = linkTo(methodOn(ClientesController.class).listarPorId(id)).withSelfRel().toMono();
-        Mono<Link> link2 = linkTo(methodOn(ClientesController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link1 = linkTo(methodOn(ClienteController.class).listarPorId(id)).withSelfRel().toMono();
+        Mono<Link> link2 = linkTo(methodOn(ClienteController.class).listarPorId(id)).withSelfRel().toMono();
 
         //PRACTIVA NO RECOMENDADA
 //        return clienteService.listarPorId(id)
