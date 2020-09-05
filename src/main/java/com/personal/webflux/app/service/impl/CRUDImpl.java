@@ -1,5 +1,10 @@
 package com.personal.webflux.app.service.impl;
 
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Pageable;
+
+import com.personal.webflux.app.pagination.PageSupport;
 import com.personal.webflux.app.repo.IGenericRepo;
 import com.personal.webflux.app.service.ICRUD;
 
@@ -35,4 +40,21 @@ public abstract class CRUDImpl<T, ID> implements ICRUD<T, ID> {
         return getRepo().deleteById(id);
     }
 
+    @Override
+    public Mono<PageSupport<T>> listarPage(Pageable page) {
+        //directamente en la bd para no hacer un full a la bd
+        //db.platos.find().skip(5).limit(5) //mongo
+
+        //hace un full a la bd pra poder paginar
+        return getRepo().findAll()
+                .collectList()
+                .map(list -> new PageSupport<>(
+                        list
+                        .stream()
+                        .skip(page.getPageNumber() * page.getPageSize())
+                        .limit(page.getPageSize())
+                        .collect(Collectors.toList()),
+                    page.getPageNumber(), page.getPageSize(), list.size()
+                    ));
+    }
 }

@@ -26,6 +26,8 @@ public class Plato {
     @Field(name = "estado")
     private Boolean estado;
 
+    private Double precio;
+
     public String getId() {
         return id;
     }
@@ -48,5 +50,13 @@ public class Plato {
 
     public void setEstado(Boolean estado) {
         this.estado = estado;
+    }
+
+    public Double getPrecio() {
+        return precio;
+    }
+
+    public void setPrecio(Double precio) {
+        this.precio = precio;
     }
 }
