@@ -98,7 +98,7 @@ public class PlatoHandler {
                 })
                 .flatMap(validadorGeneral::validate)
                 .flatMap(service::modificar)
-                .flatMap(p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
+                .flatMap(p -> ServerResponse.ok()
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .body(fromValue(p)))
                 .switchIfEmpty(ServerResponse.notFound().build());
